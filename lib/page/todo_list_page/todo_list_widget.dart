@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:smth/models/todo_model.dart';
+import 'package:provider/provider.dart';
+import 'package:smth/page/todo_list_page/todo_list_wm.dart';
+import 'package:smth/page/todo_page/todo_widget.dart';
 
-class ToDoListPage extends StatefulWidget {
-  const ToDoListPage({Key? key}) : super(key: key);
+class ToDoListWidget extends StatefulWidget {
+  const ToDoListWidget({Key? key}) : super(key: key);
 
   @override
-  State<ToDoListPage> createState() => _ToDoListPageState();
+  State<ToDoListWidget> createState() => _ToDoListWidgetState();
 }
 
-class _ToDoListPageState extends State<ToDoListPage> {
-  final List<ToDoModel> _todos = [];
+class _ToDoListWidgetState extends State<ToDoListWidget> {
+  bool active = false;
 
   @override
   Widget build(BuildContext context) {
+    ToDoListWidgetModel wm = context.read();
+    final todos = wm.getToDos(active);
     final textTheme = Theme.of(context).textTheme;
     final colorTheme = Theme.of(context).colorScheme;
     return Scaffold(
@@ -32,23 +36,26 @@ class _ToDoListPageState extends State<ToDoListPage> {
           //чтобы карточка сжалась до размеров контента,
           //но портит производительность
           cacheExtent: 10,
-          itemCount: _todos.length,
+          itemCount: todos.length,
           padding: const EdgeInsets.only(left: 16, right: 16, bottom: 77),
           itemBuilder: (BuildContext context, int index) {
             final double top = index == 0 ? 20 : 0;
-            final double bottom = index == _todos.length - 1 ? 20 : 0;
+            final double bottom = index == todos.length - 1 ? 20 : 0;
 
             //если оборачивать каждый tile material/card/...,
             //то тень ломается
 
             return Dismissible(
               key: UniqueKey(),
-              onDismissed: (direction){
-                if(direction == DismissDirection.startToEnd){
-                  //done
-                } else{
-                  //delete
-                }
+              onDismissed: (direction) {
+                setState(() {
+                  if (direction == DismissDirection.startToEnd) {
+                    wm.changeToDoState(index);
+                  } else {
+                    wm.deleteTodo(index);
+                  }
+                });
+
               },
               background: Container(
                 color: colorTheme.secondary,
@@ -56,39 +63,42 @@ class _ToDoListPageState extends State<ToDoListPage> {
                     alignment: Alignment.centerLeft,
                     child: Padding(
                       padding: const EdgeInsets.only(left: 12),
-                      child: Icon(Icons.check, color: colorTheme.surface,
-                      size: 40,),
+                      child: Icon(
+                        Icons.check,
+                        color: colorTheme.surface,
+                        size: 40,
+                      ),
                     )),
               ),
               secondaryBackground: Container(
                 color: colorTheme.error,
                 child: Align(
                   alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: Icon(Icons.delete_outline_sharp,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Icon(
+                      Icons.delete_outline_sharp,
                       color: colorTheme.surface,
-                          size: 40,),
+                      size: 40,
                     ),
+                  ),
                 ),
               ),
               child: Container(
                 decoration: BoxDecoration(
                   color: colorTheme.surface,
                   borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(top), bottom: Radius.circular(bottom)),
+                      top: Radius.circular(top),
+                      bottom: Radius.circular(bottom)),
                 ),
                 child: ListTile(
                   horizontalTitleGap: 0,
                   contentPadding: EdgeInsets.zero,
                   leading: Checkbox(
-                    value: _todos[index].done,
+                    value: todos[index].done,
                     onChanged: (value) {
-                      final check = value ?? false;
                       setState(() {
-                        _todos[index] = _todos[index].copyWith(
-                          done: check,
-                        );
+                        wm.changeToDoState(index);
                       });
                     },
                     activeColor: colorTheme.surface,
@@ -103,15 +113,17 @@ class _ToDoListPageState extends State<ToDoListPage> {
                       return colorTheme.surface;
                     }),
                   ),
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                        builder: (context) => (ToDoWidget(index: index))));
+                  },
                   title: Text(
-                    _todos[index].text,
+                    "Заметка ${index+1}",
                     style: textTheme.bodyLarge,
-
                   ),
-                  subtitle: _todos[index].date != null
+                  subtitle: todos[index].date != null
                       ? Text(
-                          DateFormat.yMd().format(_todos[index].date!),
+                          DateFormat.yMd().format(todos[index].date!),
                           style: textTheme.bodyMedium,
                         )
                       : null,
@@ -128,9 +140,8 @@ class _ToDoListPageState extends State<ToDoListPage> {
             borderRadius: BorderRadius.all(Radius.circular(50))),
         elevation: 0,
         onPressed: () {
-          setState(() {
-            _todos.add(ToDoModel(text: "data", date: DateTime.now()));
-          });
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => (ToDoWidget(index: -1))));
         },
         child: const Icon(Icons.add),
       ),

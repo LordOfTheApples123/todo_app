@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:smth/page/todo_list_page.dart';
-import 'package:smth/page/todo_page.dart';
+import 'package:smth/page/todo_list_page/todo_list_widget.dart';
 
 class ToDoApp extends StatelessWidget {
   const ToDoApp({Key? key}) : super(key: key);
@@ -47,7 +46,8 @@ class ToDoApp extends StatelessWidget {
               error: const Color(0xFFF85535),
               secondary: const Color(0xFF45B443),
               outlineVariant: const Color(0xFFAEAEAE))),
-      home: const TodoPage(),
+      home: const ToDoListWidget(),
+
     );
   }
 }
