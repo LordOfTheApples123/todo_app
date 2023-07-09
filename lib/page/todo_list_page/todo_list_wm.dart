@@ -6,13 +6,24 @@ class ToDoListWidgetModel {
   final ToDoListModel model;
   final BuildContext context;
 
+  List<ToDoModel> _allTodos = [];
+
   ToDoListWidgetModel({required this.model, required this.context});
 
+  bool showDone = false;
 
 
-  List<ToDoModel> getToDos(bool active){
-    return active? model.getActive() : model.getAll();
+
+  List<ToDoModel> getToDos(){
+    _allTodos = model.getAll();
+    return _allTodos;
   }
+
+  int getDoneCount(){
+    return _allTodos.where((todo) => todo.done).length;
+  }
+
+
 
   void changeToDoState(int index){
     model.changeToDoState(index);

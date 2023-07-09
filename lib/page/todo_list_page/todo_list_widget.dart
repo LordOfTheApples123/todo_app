@@ -12,12 +12,12 @@ class ToDoListWidget extends StatefulWidget {
 }
 
 class _ToDoListWidgetState extends State<ToDoListWidget> {
-  bool active = false;
-
   @override
   Widget build(BuildContext context) {
     ToDoListWidgetModel wm = context.read();
-    final todos = wm.getToDos(active);
+
+    final todos = wm.getToDos();
+
     final textTheme = Theme.of(context).textTheme;
     final colorTheme = Theme.of(context).colorScheme;
     return Scaffold(
@@ -25,7 +25,7 @@ class _ToDoListWidgetState extends State<ToDoListWidget> {
         backgroundColor: colorTheme.background,
         title: Text(
           "Мои дела",
-          style: textTheme.headlineLarge,
+          style: textTheme.headlineSmall,
         ),
         centerTitle: true,
       ),
@@ -36,97 +36,133 @@ class _ToDoListWidgetState extends State<ToDoListWidget> {
           //чтобы карточка сжалась до размеров контента,
           //но портит производительность
           cacheExtent: 10,
-          itemCount: todos.length,
+          itemCount: todos.length + 1,
           padding: const EdgeInsets.only(left: 16, right: 16, bottom: 77),
           itemBuilder: (BuildContext context, int index) {
-            final double top = index == 0 ? 20 : 0;
-            final double bottom = index == todos.length - 1 ? 20 : 0;
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Выполнено ${wm.getDoneCount()}",
+                      style: textTheme.bodyLarge?.copyWith(
+                          color: colorTheme.outlineVariant,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    InkWell(
+                      child: wm.showDone
+                          ? Icon(
+                              Icons.visibility,
+                              color: colorTheme.primary,
+                            )
+                          : Icon(
+                              Icons.visibility_off,
+                              color: colorTheme.primary,
+                            ),
+                      onTap: () {
+                        setState(() {
+                          wm.showDone = !wm.showDone;
+                        });
+                      },
+                    )
+                  ],
+                ),
+              );
+            }
+
+            final todosIndex = index - 1;
+            final double top = todosIndex == 0 ? 20 : 0;
+            final double bottom = todosIndex == todos.length - 1 ? 20 : 0;
 
             //если оборачивать каждый tile material/card/...,
             //то тень ломается
 
-            return Dismissible(
-              key: UniqueKey(),
-              onDismissed: (direction) {
-                setState(() {
-                  if (direction == DismissDirection.startToEnd) {
-                    wm.changeToDoState(index);
-                  } else {
-                    wm.deleteTodo(index);
-                  }
-                });
-
-              },
-              background: Container(
-                color: colorTheme.secondary,
-                child: Align(
-                    alignment: Alignment.centerLeft,
+            return Visibility(
+              visible: !todos[todosIndex].done || wm.showDone,
+              child: Dismissible(
+                key: UniqueKey(),
+                onDismissed: (direction) {
+                  setState(() {
+                    if (direction == DismissDirection.startToEnd) {
+                      wm.changeToDoState(todosIndex);
+                    } else {
+                      wm.deleteTodo(todosIndex);
+                    }
+                  });
+                },
+                background: Container(
+                  color: colorTheme.secondary,
+                  child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: Icon(
+                          Icons.check,
+                          color: colorTheme.surface,
+                          size: 40,
+                        ),
+                      )),
+                ),
+                secondaryBackground: Container(
+                  color: colorTheme.error,
+                  child: Align(
+                    alignment: Alignment.centerRight,
                     child: Padding(
-                      padding: const EdgeInsets.only(left: 12),
+                      padding: const EdgeInsets.only(right: 12),
                       child: Icon(
-                        Icons.check,
+                        Icons.delete_outline_sharp,
                         color: colorTheme.surface,
                         size: 40,
                       ),
-                    )),
-              ),
-              secondaryBackground: Container(
-                color: colorTheme.error,
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Icon(
-                      Icons.delete_outline_sharp,
-                      color: colorTheme.surface,
-                      size: 40,
                     ),
                   ),
                 ),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: colorTheme.surface,
-                  borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(top),
-                      bottom: Radius.circular(bottom)),
-                ),
-                child: ListTile(
-                  horizontalTitleGap: 0,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Checkbox(
-                    value: todos[index].done,
-                    onChanged: (value) {
-                      setState(() {
-                        wm.changeToDoState(index);
-                      });
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: colorTheme.surface,
+                    borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(top),
+                        bottom: Radius.circular(bottom)),
+                  ),
+                  child: ListTile(
+                    horizontalTitleGap: 0,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Checkbox(
+                      value: todos[todosIndex].done,
+                      onChanged: (value) {
+                        setState(() {
+                          wm.changeToDoState(todosIndex);
+                        });
+                      },
+                      activeColor: colorTheme.surface,
+                      checkColor: colorTheme.secondary,
+                      side: MaterialStateBorderSide.resolveWith((states) {
+                        if (states.contains(MaterialState.selected)) {
+                          return BorderSide(color: colorTheme.secondary);
+                        }
+                        return BorderSide(color: colorTheme.onSurface);
+                      }),
+                      fillColor: MaterialStateProperty.resolveWith((states) {
+                        return colorTheme.surface;
+                      }),
+                    ),
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => (ToDoWidget(index: todosIndex))));
                     },
-                    activeColor: colorTheme.surface,
-                    checkColor: colorTheme.secondary,
-                    side: MaterialStateBorderSide.resolveWith((states) {
-                      if (states.contains(MaterialState.selected)) {
-                        return BorderSide(color: colorTheme.secondary);
-                      }
-                      return BorderSide(color: colorTheme.onSurface);
-                    }),
-                    fillColor: MaterialStateProperty.resolveWith((states) {
-                      return colorTheme.surface;
-                    }),
+                    title: Text(
+                      "Заметка ${todosIndex + 1}",
+                      style: textTheme.bodyLarge,
+                    ),
+                    subtitle: todos[todosIndex].date != null
+                        ? Text(
+                            DateFormat.yMd().format(todos[todosIndex].date!),
+                            style: textTheme.bodyMedium,
+                          )
+                        : null,
                   ),
-                  onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => (ToDoWidget(index: index))));
-                  },
-                  title: Text(
-                    "Заметка ${index+1}",
-                    style: textTheme.bodyLarge,
-                  ),
-                  subtitle: todos[index].date != null
-                      ? Text(
-                          DateFormat.yMd().format(todos[index].date!),
-                          style: textTheme.bodyMedium,
-                        )
-                      : null,
                 ),
               ),
             );
@@ -140,8 +176,8 @@ class _ToDoListWidgetState extends State<ToDoListWidget> {
             borderRadius: BorderRadius.all(Radius.circular(50))),
         elevation: 0,
         onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => (ToDoWidget(index: -1))));
+          Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => (ToDoWidget(index: -1))));
         },
         child: const Icon(Icons.add),
       ),
